@@ -1,0 +1,35 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &.primary {
+    @apply bg-primary text-white;
+  }
+
+  &.secondary {
+    @apply bg-secondary text-white;
+  }
+
+  &.accent {
+    @apply bg-accent text-white;
+  }
+
+  &.small {
+    @apply text-sm px-3 py-1;
+  }
+
+  &.medium {
+    @apply text-base px-4 py-2;
+  }
+
+  &.large {
+    @apply text-lg px-6 py-3;
+  }
+}
