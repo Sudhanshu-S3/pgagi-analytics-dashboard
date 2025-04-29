@@ -3,6 +3,8 @@ import React from "react";
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  resetKeys?: any[];
 }
 
 interface ErrorBoundaryState {
@@ -24,7 +26,26 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    // Log the error to an error reporting service
     console.error("Error caught by boundary:", error, errorInfo);
+
+    // Call the optional onError callback
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+  }
+
+  // Reset error state when specific props change
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (this.state.hasError && this.props.resetKeys) {
+      if (
+        !prevProps.resetKeys ||
+        JSON.stringify(prevProps.resetKeys) !==
+          JSON.stringify(this.props.resetKeys)
+      ) {
+        this.handleRetry();
+      }
+    }
   }
 
   handleRetry = (): void => {

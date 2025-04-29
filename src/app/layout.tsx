@@ -1,13 +1,16 @@
-import { QueryProvider } from "./queryProvider";
-import { Providers } from "./provider";
+// src/app/layout.tsx
+import { Providers } from "./providers/index";
 import "./globals.css";
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <QueryProvider>
-          <Providers>{children}</Providers>
-        </QueryProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

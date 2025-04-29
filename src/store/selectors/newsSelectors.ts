@@ -1,98 +1,63 @@
-import { createSelector } from "reselect";
-import { RootState } from "../index";
+import { createSelector } from "@reduxjs/toolkit";
+import { RootState } from "../store";
 
-// Define a proper news item interface based on your API data
-export interface NewsItem {
-  id: string;
-  title: string;
-  description: string;
-  url: string;
-  urlToImage: string;
-  publishedAt: string;
-  source: {
-    id: string | null;
-    name: string;
-  };
-  content: string;
-  category: string;
+// Define the NewsItem interface locally
+interface NewsItem {
+  title?: string;
+  description?: string;
+  publishedAt?: string;
+  source?: string;
+  category?: string;
+  tags?: string[];
 }
 
-// Define the news state interface
-export interface NewsState {
-  category: string;
-  searchTerm: string;
-  isLoading: boolean;
-  error: string | null;
-  items: NewsItem[];
-}
+// Helper function to check if a date is within a range
+const isWithinDateRange = (
+  date: string | undefined,
+  start: string | null,
+  end: string | null
+): boolean => {
+  if (!date) return false;
+  const itemDate = new Date(date);
 
-// Base selector to get the news state slice
-const selectNewsState = (state: RootState) => state.news;
-
-// Select the current category
-export const selectCategory = createSelector(
-  selectNewsState,
-  (news) => news.category
-);
-
-// Select the current search term
-export const selectSearchTerm = createSelector(
-  selectNewsState,
-  (news) => news.searchTerm
-);
-
-// Select loading state
-export const selectNewsLoading = createSelector(
-  selectNewsState,
-  (news) => news.isLoading
-);
-
-// Select error state
-export const selectNewsError = createSelector(
-  selectNewsState,
-  (news) => news.error
-);
-
-// Select all news items
-export const selectAllNews = createSelector(
-  selectNewsState,
-  (news) => news.items
-);
-
-// Select news by category
-export const selectNewsByCategory = createSelector(
-  selectAllNews,
-  (_: RootState, category: string) => category,
-  (items: NewsItem[], category: string) => items.filter((item: NewsItem) => item.category === category)
-);
-
-// Select news filtered by search term
-export const selectFilteredNews = createSelector(
-  selectAllNews,
-  selectSearchTerm,
-  (items: NewsItem[], searchTerm: string) => {
-    if (!searchTerm) return items;
-
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return items.filter(
-      (item: NewsItem) =>
-        item.title?.toLowerCase().includes(lowerCaseSearchTerm) ||
-        item.description?.toLowerCase().includes(lowerCaseSearchTerm)
-    );
+  if (start && end) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    return itemDate >= startDate && itemDate <= endDate;
+  } else if (start) {
+    const startDate = new Date(start);
+    return itemDate >= startDate;
+  } else if (end) {
+    const endDate = new Date(end);
+    return itemDate <= endDate;
   }
-);
 
-// Combined selector for filtered and categorized news
-export const selectFilteredNewsByCategory = createSelector(
-  selectAllNews,
-  selectCategory,
-  selectSearchTerm,
-  (items: NewsItem[], category: string, searchTerm: string) => {
-    let filtered = items;
+  return true;
+};
 
-    // Filter by category if it's not 'all'
+// Define the filter options interface
+interface NewsFilterOptions {
+  dateRange?: { start: string | null; end: string | null };
+  sources?: string[];
+  tags?: string[];
+}
+
+export const selectFilteredNews = createSelector(
+  [
+    (state: RootState) => state.news.items,
+    (state: RootState) => state.news.searchTerm,
+    (state: RootState) => state.news.category,
+    (_state: RootState, options: NewsFilterOptions = {}) => options,
+  ],
+  (items, searchTerm, category, options) => {
+    const { dateRange, sources, tags } = options;
+    let filtered = [...items];
+
+    // Filter by category if present
     if (category && category !== "all") {
-      filtered = filtered.filter((item: NewsItem) => item.category === category);
+      filtered = filtered.filter(
+        (item: NewsItem) => item.category === category
+      );
     }
 
     // Filter by search term if present
@@ -102,6 +67,28 @@ export const selectFilteredNewsByCategory = createSelector(
         (item: NewsItem) =>
           item.title?.toLowerCase().includes(lowerCaseSearchTerm) ||
           item.description?.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    }
+
+    // Filter by date range if present
+    if (dateRange && (dateRange.start || dateRange.end)) {
+      filtered = filtered.filter((item: NewsItem) =>
+        isWithinDateRange(item.publishedAt, dateRange.start, dateRange.end)
+      );
+    }
+
+    // Filter by sources if present
+    if (sources && sources.length > 0) {
+      filtered = filtered.filter(
+        (item: NewsItem) => item.source && sources.includes(item.source)
+      );
+    }
+
+    // Filter by tags if present
+    if (tags && tags.length > 0) {
+      filtered = filtered.filter(
+        (item: NewsItem) =>
+          item.tags && tags.some((tag: string) => item.tags?.includes(tag))
       );
     }
 
