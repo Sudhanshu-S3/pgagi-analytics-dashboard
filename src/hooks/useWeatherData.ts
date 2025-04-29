@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WeatherData, CitySearchResult } from "@/services/api";
 
-// API functions
-const fetchWeatherData = async ({
+// API functions (existing code)
+export const fetchWeatherData = async ({
   lat,
   lon,
 }: {
@@ -17,7 +17,7 @@ const fetchWeatherData = async ({
   return response.json();
 };
 
-const searchCities = async (query: string): Promise<CitySearchResult[]> => {
+export const searchCities = async (query: string): Promise<CitySearchResult[]> => {
   if (query.length < 3) return [];
 
   const response = await fetch(
@@ -35,12 +35,16 @@ const searchCities = async (query: string): Promise<CitySearchResult[]> => {
   return data.data;
 };
 
-// Custom hooks
+// Custom hooks - update with enhanced caching strategies
 export function useWeatherData({ lat, lon }: { lat: number; lon: number }) {
   return useQuery({
     queryKey: ["weather", lat, lon],
     queryFn: () => fetchWeatherData({ lat, lon }),
     staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 2,
   });
 }
 
@@ -50,18 +54,36 @@ export function useSearchCities(query: string) {
     queryFn: () => searchCities(query),
     enabled: query.length >= 3,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 }
 
-// Prefetch function for SSR/SSG
-const prefetchWeatherData = async (
+// Add cache invalidation mutation
+export function useUpdateWeatherPreferences() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (preferences: { unit: "celsius" | "fahrenheit" }) => {
+      localStorage.setItem("weatherPreferences", JSON.stringify(preferences));
+      return preferences;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch weather queries after preferences change
+      queryClient.invalidateQueries({ queryKey: ["weather"] });
+    },
+  });
+}
+
+// Expand existing prefetch function
+export const prefetchWeatherData = async (
   queryClient: any,
   coordinates: { lat: number; lon: number }
 ) => {
   await queryClient.prefetchQuery({
     queryKey: ["weather", coordinates.lat, coordinates.lon],
     queryFn: () => fetchWeatherData(coordinates),
+    staleTime: 10 * 60 * 1000,
   });
 };
-
-export { fetchWeatherData, searchCities, prefetchWeatherData };

@@ -1,17 +1,15 @@
 import React, { useState, useRef, useCallback } from "react";
 import { NewsCard } from "./NewsCard";
-import { NewsModal } from "./NewsModal";
-import { useGetNewsQuery, NewsItem } from "@/services/api";
+import { useNewsData } from "@/hooks/useNewsData";
+import { NewsItem } from "@/services/api";
 
-const NewsFeed = () => {
+interface NewsFeedProps {
+  onArticleClick: (article: NewsItem) => void;
+}
+
+const NewsFeed: React.FC<NewsFeedProps> = ({ onArticleClick }) => {
   const [category, setCategory] = useState("general");
-  const [page, setPage] = useState(1);
-  const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
-
-  const { data, isLoading, isFetching } = useGetNewsQuery({
-    category,
-    page,
-  });
+  const { data, isLoading, isFetching } = useNewsData(category);
 
   // Setup for infinite scrolling
   const observer = useRef<IntersectionObserver | null>(null);
@@ -22,45 +20,40 @@ const NewsFeed = () => {
       if (observer.current) observer.current.disconnect();
 
       observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && data?.articles.length) {
-          setPage((prevPage) => prevPage + 1);
+        if (entries[0].isIntersecting && data?.length) {
+          // Load more articles if needed
         }
       });
 
       if (node) observer.current.observe(node);
     },
-    [isLoading, isFetching, data?.articles.length]
+    [isLoading, isFetching, data]
   );
 
-  // Category options
+  // List of available news categories
   const categories = [
     "general",
     "business",
-    "entertainment",
-    "health",
-    "science",
-    "sports",
     "technology",
+    "science",
+    "health",
+    "sports",
+    "entertainment",
   ];
 
-  const handleCategoryChange = (newCategory: string) => {
-    setCategory(newCategory);
-    setPage(1);
-  };
-
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Latest News</h2>
-
-      {/* Category filters */}
+    <div className="space-y-4">
+      {/* Category selector */}
       <div className="flex flex-wrap gap-2 mb-4">
         {categories.map((cat) => (
           <button
             key={cat}
-            onClick={() => handleCategoryChange(cat)}
-            className={`px-4 py-2 rounded ${
-              category === cat ? "bg-blue-600 text-white" : "bg-gray-200"
-            }`}
+            onClick={() => setCategory(cat)}
+            className={`px-3 py-1 text-sm rounded-full ${
+              category === cat
+                ? "bg-primary text-white"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+            } transition-colors duration-200`}
           >
             {cat.charAt(0).toUpperCase() + cat.slice(1)}
           </button>
@@ -68,14 +61,14 @@ const NewsFeed = () => {
       </div>
 
       {/* News list */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data?.articles.map((article, index) => {
-          if (index === data.articles.length - 1) {
+      <div className="grid grid-cols-1 gap-4">
+        {data?.map((article, index) => {
+          if (index === data.length - 1) {
             return (
               <div ref={lastArticleRef} key={index}>
                 <NewsCard
                   article={article}
-                  onClick={() => setSelectedArticle(article)}
+                  onClick={() => onArticleClick(article)}
                 />
               </div>
             );
@@ -84,7 +77,7 @@ const NewsFeed = () => {
               <NewsCard
                 key={index}
                 article={article}
-                onClick={() => setSelectedArticle(article)}
+                onClick={() => onArticleClick(article)}
               />
             );
           }
@@ -92,13 +85,6 @@ const NewsFeed = () => {
       </div>
 
       {isLoading && <div className="text-center mt-4">Loading articles...</div>}
-
-      {/* Article detail modal */}
-      <NewsModal
-        article={selectedArticle}
-        isOpen={!!selectedArticle}
-        onClose={() => setSelectedArticle(null)}
-      />
     </div>
   );
 };

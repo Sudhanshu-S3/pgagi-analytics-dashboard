@@ -1,21 +1,17 @@
-import "@/app/globals.css";
-import { ReactNode } from "react";
+import ReactQueryProvider from "@/providers/ReactQueryProvider";
 import { Providers } from "./provider";
-import { QueryProvider } from "./queryProvider";
-import { PersistGate } from "redux-persist/integration/react";
-import { persistor } from "@/store/persistor";
 
-export interface RootLayoutProps {
-  children: ReactNode;
-}
-
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body>
-        <Providers>
-          <QueryProvider>{children}</QueryProvider>
-        </Providers>
+        <ReactQueryProvider>
+          <Providers>{children}</Providers>
+        </ReactQueryProvider>
       </body>
     </html>
   );
