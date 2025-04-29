@@ -1,11 +1,10 @@
 import { createSelector } from "reselect";
-import { RootState } from "./index";
+import { RootState } from "../index";
 
 // Basic selectors
 const selectWeatherState = (state: RootState) => state.weather;
 const selectNewsState = (state: RootState) => state.news;
 const selectFinanceState = (state: RootState) => state.finance;
-const selectDashboardState = (state: RootState) => state.dashboard;
 
 // Memoized selectors
 export const selectSelectedLocation = createSelector(
@@ -43,22 +42,17 @@ export const selectFinanceTimeRange = createSelector(
   (finance) => finance.timeRange
 );
 
-export const selectDashboardTimeRange = createSelector(
-  [selectDashboardState],
-  (dashboard) => dashboard.selectedTimeRange
-);
+
 
 // Complex selectors that combine data
 export const selectIsLoading = createSelector(
   [
     selectWeatherState,
     selectNewsState,
-    selectFinanceState,
-    selectDashboardState,
+    selectFinanceState
   ],
-  (weather, news, finance, dashboard) =>
+  (weather, news, finance) =>
     weather.isLoading ||
     news.isLoading ||
-    finance.isLoading ||
-    dashboard.isLoading
+    finance.isLoading
 );

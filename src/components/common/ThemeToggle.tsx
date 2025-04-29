@@ -1,14 +1,41 @@
-import React from "react";
-import { useTheme } from "@/context/ThemeContext";
+import React, { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
+import { useNotification } from "@/components/Notification";
 
 const ThemeToggle: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const notification = useNotification();
+
+  // After mounting, we can safely show the UI since we now have access to the theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+
+    notification.addNotification({
+      title: `${
+        newTheme.charAt(0).toUpperCase() + newTheme.slice(1)
+      } theme activated`,
+      message: `You've switched to ${newTheme} mode.`,
+      type: "success",
+      duration: 3000,
+    });
+  };
+
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) return null;
 
   return (
-    <button
+    <motion.button
       onClick={toggleTheme}
-      className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-      aria-label="Toggle dark mode"
+      className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors duration-300"
+      aria-label="Toggle theme"
+      whileTap={{ scale: 0.95 }}
     >
       {theme === "dark" ? (
         <svg
@@ -33,7 +60,7 @@ const ThemeToggle: React.FC = () => {
           <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
         </svg>
       )}
-    </button>
+    </motion.button>
   );
 };
 

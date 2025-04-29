@@ -1,71 +1,108 @@
-import { dehydrate } from "@tanstack/react-query";
-import { QueryClient } from "@tanstack/query-core";
-import { prefetchWeatherData } from "@/hooks/useWeatherData";
-import { prefetchNewsData } from "@/hooks/useNewsData";
-import { prefetchStockData } from "@/hooks/useFinanceData";
-import WeatherWidget from "@/components/Weather/WeatherCard";
-import NewsWidget from "@/components/News/NewsWidget";
-import FinanceWidget from "@/components/Finance/FinanceWidget";
-import { Suspense } from "react";
+"use client";
 
-const LoadingWeatherWidget = () => (
-  <div className="h-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-);
+import React, { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { useNotification } from "@/components/Notification";
+// Import other components you need
 
-const LoadingNewsWidget = () => (
-  <div className="h-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-);
+export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
+  const notification = useNotification();
 
-const LoadingFinanceWidget = () => (
-  <div className="h-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-);
-
-export default async function DashboardPage() {
-  // Default coordinates for New York
-  const coordinates = {
-    lat: 40.7128,
-    lon: -74.006,
-  };
-
-  // Create a new QueryClient for server-side prefetching
-  const queryClient = new QueryClient();
-
-  // Prefetch all necessary data in parallel
-  await Promise.all([
-    prefetchWeatherData(queryClient, coordinates),
-    prefetchNewsData(queryClient),
-    prefetchStockData(queryClient),
+  // Other state variables and logic
+  const [dashboardLayout, setDashboardLayout] = useState([
+    "weather",
+    "news",
+    "finance",
+    // Add other widgets as needed
   ]);
 
-  // Properly dehydrate the query cache
-  const dehydratedState = dehydrate(queryClient);
+  // After mounting, we have access to the theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Function to move a widget in the layout
+  const moveWidget = (dragIndex: number, hoverIndex: number) => {
+    const newLayout = [...dashboardLayout];
+    const draggedItem = newLayout[dragIndex];
+    // Remove the dragged item and insert it at the new position
+    newLayout.splice(dragIndex, 1);
+    newLayout.splice(hoverIndex, 0, draggedItem);
+    setDashboardLayout(newLayout);
+  };
+
+  // Render widget based on type
+  const renderWidget = (type: string, index: number) => {
+    const content = (() => {
+      switch (type) {
+        case "weather":
+          return <WeatherWidget />;
+        case "news":
+          return <NewsWidget />;
+        case "finance":
+          return <FinanceWidget />;
+        default:
+          return <div>Widget not found</div>;
+      }
+    })();
+
+    return (
+      <motion.div
+        key={index}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 m-2 transition-colors duration-200"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+      >
+        {content}
+      </motion.div>
+    );
+  };
+
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) return null;
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Analytics Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="col-span-1">
-          <h2 className="text-xl font-semibold mb-2">Weather</h2>
-          <Suspense fallback={<LoadingWeatherWidget />}>
-            <WeatherWidget />
-          </Suspense>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+      <header className="bg-white dark:bg-gray-800 shadow transition-colors duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Dashboard
+          </h1>
+          <div className="flex items-center space-x-4">
+            {/* Other header elements */}
+            <ThemeToggle />
+          </div>
         </div>
+      </header>
 
-        <div className="col-span-1">
-          <h2 className="text-xl font-semibold mb-2">Latest News</h2>
-          <Suspense fallback={<LoadingNewsWidget />}>
-            <NewsWidget />
-          </Suspense>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {dashboardLayout.map((widgetType, index) =>
+            renderWidget(widgetType, index)
+          )}
         </div>
-
-        <div className="col-span-1">
-          <h2 className="text-xl font-semibold mb-2">Financial Overview</h2>
-          <Suspense fallback={<LoadingFinanceWidget />}>
-            <FinanceWidget />
-          </Suspense>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
+
+// Placeholder components - replace with your actual components
+const WeatherWidget = () => (
+  <div className="h-64 flex items-center justify-center text-gray-700 dark:text-gray-300">
+    Weather Widget
+  </div>
+);
+const NewsWidget = () => (
+  <div className="h-64 flex items-center justify-center text-gray-700 dark:text-gray-300">
+    News Widget
+  </div>
+);
+const FinanceWidget = () => (
+  <div className="h-64 flex items-center justify-center text-gray-700 dark:text-gray-300">
+    Finance Widget
+  </div>
+);

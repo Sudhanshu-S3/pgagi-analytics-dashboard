@@ -1,30 +1,35 @@
-import { configureStore } from "@reduxjs/toolkit";
-import { setupListeners } from "@reduxjs/toolkit/query";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { persistReducer, persistStore } from "redux-persist";
+import storage from "redux-persist/lib/storage";
 import { apiSlice } from "@/services/api";
 import weatherReducer from "./slices/weatherSlice";
 import newsReducer from "./slices/newsSlice";
 import financeReducer from "./slices/financeSlice";
-import dashboardReducer from "./slices/dashboardSlice";
 
-export const store = configureStore({
-  reducer: {
-    // Include existing reducers
-    dashboard: dashboardReducer,
-
-    // Add new reducers
-    weather: weatherReducer,
-    news: newsReducer,
-    finance: financeReducer,
-
-    // Add the RTK Query API reducer
-    [apiSlice.reducerPath]: apiSlice.reducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
+const rootReducer = combineReducers({
+  [apiSlice.reducerPath]: apiSlice.reducer,
+  weather: weatherReducer,
+  news: newsReducer,
+  finance: financeReducer,
 });
 
-// Optional, but required for refetchOnFocus/refetchOnReconnect behaviors
-setupListeners(store.dispatch);
+const persistConfig = {
+  key: "root",
+  storage,
+  whitelist: ["weather", "news", "finance"],
+};
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({ serializableCheck: false }).concat(
+      apiSlice.middleware
+    ),
+});
+
+export const persistor = persistStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
